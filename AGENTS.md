@@ -16,12 +16,13 @@ Goal: map what exists, find the gaps, and pick something worth building. In scop
 - One file per fetched page: `raw/<role>/<YYYY-MM-DD>-<slug>.md`, starting with the source URL on line 1 and the fetch date on line 2.
 - Search results go in `raw/<role>/searches.jsonl`, one JSON object per query.
 - `<role>` is the panel seat that fetched it (`primary`, `skeptic`, `recency`) or `manual`.
+- A refetch gets a new file name; it never overwrites an earlier file.
 
 ## wiki/
 
 - `wiki/claims.md`: the numbered claims ledger with verdict and evidence per claim.
-- `wiki/projects/<name>.md`: one page per tool, project, or product.
-- `wiki/topics/<name>.md`: one page per concept or pain area.
+- `wiki/topics/<name>.md`: one page per concept or pain area. Tools start as a row in a topic table.
+- `wiki/projects/<name>.md`: a tool gets its own page once it needs more than a table row.
 - `wiki/ideas/<name>.md`: buildable opportunities.
 - `wiki/overview.md`: the current synthesis.
 
@@ -42,4 +43,4 @@ Log entries start with `## [YYYY-MM-DD] <ingest|query|lint|panel> | <title>`.
 
 ## Tools
 
-Exa is out of credits. Use TinyFish: `tinyfish search query "..."` and `tinyfish fetch content get <url>`.
+Exa is out of credits. Use TinyFish: `tinyfish search query "..."` and `tinyfish fetch content get <url>`. The `--highlights` option returns 403 on this account, so fetch full pages. `gh api` works for GitHub repos, issues and releases.
