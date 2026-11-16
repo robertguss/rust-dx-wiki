@@ -43,6 +43,7 @@ These are leads for brainstorming, not verified gaps. Each is an absence in what
 4. **Build diagnosis.** The profiling tools exist but are separate and manual. Nothing fetched takes a workspace and says "your build is slow because of X; here is the fix".
 5. **Agent-loop measurement.** Nothing fetched measures where an agent's time and tokens go in a Rust edit-check loop.
 6. **Unfunded upstream work.** Relink-don't-rebuild ($70,000), polymorphization and target-directory size are marked red in the roadmap's funding table. Crate slicing has a claimed 1.4x to 30x upside and no accepted goal.
+   A constraint on contributing here: a compiler contributor writes "I'm still writing all my own code and text, because (a) that's paramount, and (b) the project policy requires it" (`raw/manual/2026-11-16-nnethercote-sept-2026.md`), so agent-written patches to rustc are not an open route. The policy text itself has not been fetched.
 7. **Hot-patching beyond Dioxus.** subsecond is framework-neutral in principle but needs the Dioxus CLI as runner.
 
 ## Not yet covered
