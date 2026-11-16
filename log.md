@@ -17,3 +17,7 @@ Created overview and five topic pages. Commercial build services, error messages
 ## [2026-11-16] query | Why are Rust compile times slow?
 
 Fetched eight explanatory sources into `raw/manual/` and filed the answer as `wiki/topics/why-rust-compiles-slowly.md`.
+
+## [2026-11-16] query | Is a build-diagnosis tool worth building?
+
+Ran a pre-registered kill test on ripgrep, helix, atuin, nushell and meilisearch (`experiments/build-diagnosis-kill-test/`). Verdict: no. The generic preset delivers most of the configuration-level win; project-specific fixes cleared the 20% bar on 2 of 5 projects against a required 3.

@@ -14,6 +14,10 @@
 - [AI-agent loop](wiki/topics/ai-agent-loop.md): parallel agents in worktrees, who already serves them, what looks less crowded.
 - [Failures and stalls](wiki/topics/failures-and-stalls.md): what was tried and dropped, and the patterns behind it.
 
+## Experiments
+
+- [Build-diagnosis kill test](experiments/build-diagnosis-kill-test/RESULTS.md): five real projects, five configurations; verdict is don't build the diagnosis tool, apply the preset.
+
 ## Raw sources
 
 - `raw/primary/`, `raw/skeptic/`, `raw/recency/`: each panel seat's fetched pages, `searches.jsonl`, and `2026-11-16-report.md`.

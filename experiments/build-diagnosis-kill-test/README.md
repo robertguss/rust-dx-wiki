@@ -14,7 +14,7 @@ A generic preset already exists: `cargo-wizard`'s `fast-compile` profile turns o
 
 ## Projects
 
-Latest release of each, shallow-cloned. Each uses the Rust toolchain its own repository pins.
+Latest release of each, shallow-cloned. All were built with Rust 1.97.1: this environment sets `RUSTUP_TOOLCHAIN`, which overrides each repository's pinned toolchain.
 
 | Project | Why | Binary package | Leaf edit | Deep edit |
 | --- | --- | --- | --- | --- |
