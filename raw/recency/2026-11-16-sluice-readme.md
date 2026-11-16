@@ -1,0 +1,185 @@
+https://raw.githubusercontent.com/josegarridodigio/sluice/main/README.md
+2026-11-16
+
+Verify each git tree once.
+A stack-agnostic verification queue and cache for parallel coding agents.
+
+![Six requests, one run](docs/assets/demo.gif)
+\*Six requests for the same tree: one run, five coalesced, and a repeat served from the cache.\*
+Sluice runs each gate (tests, linters, type checks) once per git tree, under a
+global concurrency budget, and caches the result. Git hooks call `sluice run`;
+coding agents call the MCP server started by `sluice mcp`.
+## Why
+You run four coding agents on the same project, each in its own git worktree,
+and every one of them triggers the same `pre-commit` and `pre-push` checks.
+Four copies of the full suite run at once and the machine stops answering.
+Most of those runs verify a tree that already passed: the agent ran it, then
+`pre-commit`, then `pre-push`, then again after a no-op rebase. Hooks live in
+the shared `.git/hooks`, so nothing coordinates the worktrees. And an agent's
+shell tool has a timeout, so a hook that waits in a queue inside `git commit`
+makes the agent move on without the result. Sluice bounds the concurrency,
+removes the redundancy and never leaves an agent hanging.
+With one agent there is nothing to coordinate and Sluice costs about a second.
+From two agents on it removes the runs that verify a tree already verified and
+keeps the rest from fighting over the CPUs: 44 % less time with eight agents on
+a 4-CPU runner. Method, raw data and how to run it:
+[Agents in parallel](docs/validation.md#agents-in-parallel-ci).
+## Features
+- \*\*Per-tree cache.\*\* The key is the exact content of the working tree plus the
+gate definition, shared by every worktree. Hits return in milliseconds and
+never need the daemon.
+- \*\*Daemon with budget and coalescing.\*\* A per-user daemon runs gates under a
+weighted budget; identical simultaneous requests share one run.
+- \*\*PSI and memory admission.\*\* New work is held while the machine is under real
+pressure (Linux PSI), and a gate starts only when the memory it is expected
+to use fits what is free. The expectation is learned from the gate's earlier
+runs, kept when an agent changes its arguments, and the reserve grows with
+what the rest of the machine uses while heavy gates run.
+- \*\*Memory containment of every gate job.\*\* Each job runs under a RAM and a
+swap ceiling that the kernel enforces and the daemon rewrites every second,
+so the jobs together never take the machine below a floor: a job that does
+not fit dies in its own cgroup instead of freezing the machine. Processes
+that move themselves out of their job, as Chromium and so Playwright's
+browsers do, are moved back and die with it. While the desktop session
+stalls on memory, no job starts.
+- \*\*Backfilling and stalled jobs.\*\* Small gates start beside a heavy one that
+waits for room when they cannot delay it; a gate that stops making progress
+is reported (`STALLED`), never killed.
+- \*\*Git hooks\*\* for Husky, lefthook, pre-commit/prek and plain `.githooks/`,
+failing fast inside agents instead of hanging.
+- \*\*Hooks entry point (optional).\*\* `sluice hooks on` makes Sluice the hooks
+entry point of one clone, without editing the repository, for hook files you
+cannot rewire. Hooks Sluice understands completely run their commands through
+the queue and the cache; every other hook runs as before. See
+[Git hooks](docs/hooks.md).
+- \*\*MCP tools and an agent plugin.\*\* `sluice mcp` gives agents a blocking
+`verify` tool; the agent plugin adds a skill, a guard hook and a session
+hook that puts shell shims in the agent's `PATH` and hands it the rules.
+Install it and nothing else.
+- \*\*`sluice exec` and queue-only gates\*\* put any command (`docker build`,
+`make`) under the same budget, without cache.
+- \*\*Path-scoped gates\*\* key on part of the tree, so unrelated changes keep the
+cached pass.
+- \*\*Local merge queue.\*\* Agents enqueue committed branches; a human approves
+one atomic landing. The train's worktree can be prepared (`[queue] prepare`,
+for example a dependency install) before its gates run, and on a protected
+target it lands through a pull request (`[queue] land = "pull-request"`).
+- \*\*`sluice doctor` and `sluice update`\*\* check the installation (with a
+redacted bug-report bundle) and upgrade in place.
+## Install
+Linux only, with `git` 2.31 or newer in `PATH`. Prebuilt static binaries for
+x86\_64 and aarch64 are on the
+[releases page](https://github.com/josegarridodigio/sluice/releases).
+```sh
+curl -fsSL https://raw.githubusercontent.com/josegarridodigio/sluice/main/scripts/install.sh | sh
+```
+This installs the latest release into `~/.local/bin` (`SLUICE\_VERSION` pins a
+tag, `SLUICE\_INSTALL\_DIR` relocates). Later, `sluice update` upgrades in place,
+checksum-verified, and the Claude Code plugin follows with
+```sh
+claude plugin marketplace update sluice
+claude plugin update sluice@sluice
+```
+(then restart the agent sessions; `sluice doctor` says when the plugin and the
+binary differ). From source, with a stable Rust toolchain:
+```sh
+cargo install --path crates/sluice-gate
+```
+The crate is `sluice-gate` because `sluice` is taken on crates.io; the binary
+is `sluice`.
+## Quick start
+1. Install the binary (above).
+2. Install the agent plugin, in Claude Code (with `sluice` in your `PATH`):
+```
+/plugin marketplace add josegarridodigio/sluice
+/plugin install sluice@sluice
+```
+3. Run `sluice init` in each repository (or let the agent propose it):
+```sh
+sluice init --dry-run # detects the stack and your hooks; shows, writes nothing
+sluice init # writes .sluice.toml, rewires your hooks
+```
+If the hook files cannot be edited (a hook manager or a teammate owns
+them), `sluice init --hooks entry` leaves them alone and makes Sluice the
+hooks entry point of your clone instead ([Git hooks](docs/hooks.md)).
+That is all: no `PATH` edit, no `CLAUDE.md`, no user config. From then on a
+commit runs `sluice run` on a cache miss, and `sluice status` shows the
+daemon, budget, queue and totals. Agents other than Claude Code use the MCP
+server and, if they only have a shell, `sluice shim install`
+([agents](docs/agents.md)).
+A gate is a named shell command in `.sluice.toml`:
+```toml
+version = 1
+[gates.test]
+cmd = "npm test -- --maxWorkers=2"
+weight = 4
+hooks = ["pre-commit", "pre-push"]
+```
+Run `sluice run test` twice on the same tree and the second call returns from
+the cache. Recipes for Node, Python, Rust, Go, Docker and monorepos are in the
+[gates cookbook](docs/gates-cookbook.md).
+## Documentation
+| Document | What it covers |
+|---|---|
+| [How it works](docs/how-it-works.md) | Architecture, cache key, scheduling, what to know before trusting a hit, prior art |
+| [Git hooks](docs/hooks.md) | The hooks entry point (`sluice hooks on`): what runs through the queue and the cache, what is left to the hook manager, limits |
+| [CLI reference](docs/cli.md) | Every command with its full `--help`, exit codes, environment variables |
+| [Configuration](docs/configuration.md) | Every field of `.sluice.toml` and the user config, with defaults |
+| [Gates cookbook](docs/gates-cookbook.md) | Ready-to-adapt gate files per stack |
+| [Agents](docs/agents.md) | Using Sluice from coding agents; the [Claude Code plugin](plugin/README.md) |
+| [Merge queue](docs/merge-queue.md) | Handing agents' branches to a local queue and landing them |
+| [Debugging](docs/debugging.md) | Logs, debug levels, `sluice doctor --bundle` |
+| [Compatibility](docs/compatibility.md) | What stays stable across releases: cache, config format, protocol, upgrades and downgrades |
+| [CHANGELOG](CHANGELOG.md) | What changed in each release |
+| [Design knowledge base](kb/sluice/plan/master-plan.md) | The plan, the architecture and one ADR per decision |
+## Status and limitations
+Sluice is alpha: complete enough for early adopters, not yet proven by long use. The gaps you will hit first:
+- \*\*Linux only\*\*, git 2.31 or newer; other platforms are not planned.
+- \*\*Verdicts, not artifacts.\*\* A hit says a gate passed on this tree; it does
+not restore build outputs.
+- \*\*Queueing covers declared gates, `sluice exec` and the heavy command
+list.\*\* In agent sessions the plugin's guard and shims queue the heavy
+commands; a command run by absolute path, under `env -i` or from a shell
+that resets `PATH` bypasses the queue. Since 0.5.0 such commands are still
+contained (cgroups) when containment is available, and your forge's branch
+protection remains the enforcement for what lands.
+- \*\*Containment needs cgroup v2 and a systemd user manager.\*\* CPU weights
+need systemd 252 or newer (or an administrator's drop-in); the memory
+policy needs `systemd-oomd` and systemd 257 or newer, otherwise the agents'
+memory is only accounted (gate jobs are still admitted by memory and are the
+kernel's preferred OOM victims; the opt-in `[admission] memory\_guard` covers
+machines without `systemd-oomd`). In containers, on cgroup v1 or without a user manager
+Sluice runs uncontained and `sluice doctor` says why. It protects against
+accidental overload, not against a hostile process: a process that leaves
+its job's cgroup is moved back within a second (since 0.11.0), and the memory
+it used while outside stays outside the job. Memory used outside gates
+(builds, agents and browsers you start yourself) is never limited.
+- \*\*Validated on three machines with real agent sessions.\*\* Containment was
+validated from 0.5.0 on two Ubuntu 26.04 machines (20 and 12 threads), on the
+command line and over SSH; the memory ceilings, the moved-back processes and
+the desktop guard of 0.10.0 to 0.12.1 ran on those two and a third Linux
+machine (16 threads); the incidents behind them were analysed on GNOME
+desktops. Not yet validated: other desktops (the desktop guard reads the
+systemd user manager's `session.slice`), the
+agent's Bash sandbox with its default seccomp filter (tested only with
+`sandbox.network.allowAllUnixSockets`), the interactive terminal UI, IDE
+integrations, and systems with systemd older than 257. The desktop guard's
+thresholds and the swap floor are first values, to be tuned from the
+recorded telemetry. Reports are welcome.
+- \*\*Shims need the agent plugin or setup by hand.\*\* Claude Code gets them
+automatically; other agents need `sluice shim install` and a `PATH` entry.
+A `.sluice.toml` with `weight = "auto"` needs 0.4.0.
+- \*\*A hit is a local optimisation.\*\* CI stays authoritative, and inputs git
+cannot see must be declared: toolchain versions (`key\_inputs`), ignored
+files and installed dependencies (`key\_files`), environment variables
+(`key\_env`). `sluice init` writes the usual ones and `sluice doctor` warns
+about gaps.
+- \*\*Per-worktree caches.\*\* Tools that keep state inside the checkout, such as
+`node\_modules/.cache`, need one copy per worktree.
+The full list is in the [final report](kb/sluice/changes/final-report.md).
+## Contributing
+Issues and discussions are open; use the issue forms (a bug report asks for
+`sluice doctor --bundle`). The quality bar is in
+[CONTRIBUTING.md](CONTRIBUTING.md).
+## License
+MIT. See [LICENSE](LICENSE).

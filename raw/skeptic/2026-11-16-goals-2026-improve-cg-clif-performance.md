@@ -1,0 +1,89 @@
+https://goals.rust-lang.org/2026/improve-cg_clif-performance.html
+2026-11-16
+
+title: Improve `rustc_codegen_cranelift` performance - Rust Project Goals
+published_date: None
+final_url: https://goals.rust-lang.org/2026/improve-cg_clif-performance.html
+
+# Improve `rustc_codegen_cranelift` performance
+
+| Metadata |  |
+| --- | --- |
+| Contact | bjorn3 |
+| Funding contact | Tweede golf |
+| Status | Accepted |
+| Tracking issue | rust-lang/goals#639 |
+| Zulip channel | N/A |
+| Roadmap | Fast Builds |
+| compiler champion | bjorn3 |
+| Teams | cargo, compiler |
+| Task owners | bjorn3 |
+
+## Summary
+
+This goal aims to improve the rust development experience through faster incremental code generation with `rustc_codegen_cranelift`. We’re targeting a 2x speedup inside the `rustc_codegen_cranelift` backend.
+
+## Motivation
+
+### The status quo
+
+Rust compilation is slow, and despite constant monitoring and gradual improvement of rustc’s performance, the developer experience has not materially improved in recent years.
+
+The `rustc_codegen_cranelift` backend has the potential to substantially improve incremental code generation time. It already outperforms the LLVM backend, but so far has not yet (fully) delivered on its promise of improving the development experience.
+
+In local benchmarks on a 16-core machine, as of February 2026, measuring start-to-finish incremental compilation time of Zed:
+
+* with `-Cdebug-info=none`, cranelift is 5% faster than LLVM
+* with `-Cdebug-info=line-tables-only`, cranelift is 12% faster than LLVM
+
+The amount of debug information is relevant. `-Cdebug-info=line-tables-only` is the most common during development: it provides information for detailed backtraces, but does not emit the detailed information that is useful when stepping through a program with a debugger.
+
+With `-Cdebuginfo=line-tables-only` the performance benefit of the cranelift backend varies between negligible and ~30% with the average speedup around 10-15% for a single crate compilation in the rustc benchmark suite.
+
+### What we propose to do about it
+
+We want to explore ambitious ways to substantially improve the speedup that the cranelift backend offers over LLVM (we are targeting a 2x speedup inside the backend), thereby increasing the utility of `rustc_codegen_cranelift`.
+
+Possible projects are:
+
+* A persistent daemon that caches the machine code of individual compiled functions in-memory, eliminating serialization overhead with respect to caching individual functions on disk.
+* Using just-in-time (JIT) compilation for functions as they are called.
+* Interpreting Cranelift IR rather than compiling it for functions that are called infrequently.
+
+#### Stability & Usability improvements
+
+We additionally want to fix several long-standing bugs that limit `rustc_codegen_cranelift`’s usability today. In particular:
+
+* add support for `mod_init_funcs`
+
+### Work items over the next year
+
+| Task | Owner(s) | Notes |
+| --- | --- | --- |
+| Stability/usability improvements | bjorn3 |  |
+| Investigate ways to speedup `rustc_codegen_cranelift` | bjorn3 |  |
+
+## Team asks
+
+| Team | Support level | Notes |
+| --- | --- | --- |
+| cargo | Small | In case we end up pursuing JITing as a way to improve performance that will eventually need native integration with `cargo run`. For now we’re just prototyping, and so the occasional vibe check should be sufficient |
+| compiler | Medium | Depending on what ways we end up pursuing, we might need no rustc side changes at all or medium sized changes. |
+
+## Funding
+
+| Purpose | Cost | Funded | Sponsor(s) |
+| --- | --- | --- | --- |
+| Contributor | $65,000 | Full | OpenAI, AWS |
+
+## Target timeline
+
+The duration of the project is 6 months. Starting from the agreed start date (“Month 1”), the timeline we’re targeting is:
+
+* Month 1-2: identify optimization Project 1, implement it, run benchmarks and publish results; inform next cycle
+* Month 3-4: identify optimization Project 2, implement it, run benchmarks and publish results; inform next cycle
+* Month 5-6: identify optimization Project 3, implement it, run benchmarks and publish results
+
+The expected effort for the work is 4 person-months.
+
+## Frequently asked questions

@@ -1,0 +1,155 @@
+https://github.com/davidlattimore/wild
+2026-11-16
+
+fetched_with: gh api repos/davidlattimore/wild --jq '"full_name: \(.full_name)\ndescription: \(.description)\nstars: \(.stargazers_count)\narchived: \(.archived)\npushed_at: \(.pushed_at)\nupdated_at: \(.updated_at)\ncreated_at: \(.created_at)\nopen_issues: \(.open_issues_count)"'; echo 'latest_release:'; gh api repos/davidlattimore/wild/releases/latest --jq '"\(.tag_name) \(.published_at)"' 2>/dev/null; echo; echo '--- README ---'; gh api repos/davidlattimore/wild/readme -H 'Accept: application/vnd.github.raw'
+
+full_name: wild-linker/wild
+description: A very fast linker for Linux and WebAssembly
+stars: 4122
+archived: false
+pushed_at: 2026-11-16T01:06:20Z
+updated_at: 2026-11-14T07:49:53Z
+created_at: 2024-02-04T23:33:54Z
+open_issues: 99
+latest_release:
+0.11.0 2026-10-24T04:21:43Z
+
+--- README ---
+# Wild linker
+
+![Wild logo - drawing of rusty chain links with vines](/images/wild.png)
+
+Wild is a linker with the goal of being very fast for iterative development.
+
+The plan is to eventually make it incremental, however that isn't yet implemented. It is however
+already pretty fast even without incremental linking.
+
+### Documentation quick links
+
+* [Usage](USAGE.md)
+* [Frequently asked questions](FAQ.md)
+* [Linker script support](LINKER_SCRIPT_SUPPORT.md)
+
+## Benchmarks
+
+The goal of Wild is to eventually be very fast via incremental linking. However, we also want to be
+as fast as we can be for non-incremental linking and for the initial link when incremental linking is enabled. See [BENCHMARKING.md](BENCHMARKING.md) for details on running benchmarks.
+
+We run benchmarks on a few different systems:
+
+* [Ryzen 9 9955HX (16 core, 32 thread) - ELF](benchmarks/ryzen-9955hx.md)
+* [Ryzen 9 9955HX (16 core, 32 thread) - Wasm](benchmarks/ryzen-wasm.md)
+* [Raspberry Pi 5 - ELF](benchmarks/raspberrypi.md)
+* [Mac Mini - Mach-O](benchmarks/mac-mini-m4.md)
+
+For example, linking Chromium with CREL relocations on the Ryzen system:
+
+![Benchmark of linking chrome-crel](benchmarks/images/ryzen-9955hx/chrome-crel-time.svg)
+
+Or linking a Wasm build of spidermonkey on the same system:
+
+![Benchmark of linking a Wasm build of spidermonkey](benchmarks/images/ryzen-wasm/spidermonkey-wasm-time.svg)
+
+## Feature support
+
+The following platforms / architectures are currently supported:
+
+* x86-64 on Linux
+* AArch64 (ARM64) on Linux
+* RISC-V (riscv64gc) on Linux
+* LoongArch64 on Linux
+* PPC64LE on Linux (initial support)
+* WebAssembly (wasm32)
+
+Here are some of the bigger things we're looking ahead to:
+
+* Incremental linking
+* Mach-O support
+* Windows support
+
+## Installation
+
+### From GitHub releases
+
+Download a tarball from the [releases page](https://github.com/wild-linker/wild/releases). Unpack
+it and copy the `wild` binary somewhere on your path.
+
+### Cargo binstall
+
+If you have [cargo-binstall](https://github.com/cargo-bins/cargo-binstall), you can install wild as
+follows:
+
+```sh
+cargo binstall wild-linker
+```
+
+### Brew
+
+```sh
+brew install wild-linker/wild/wild
+```
+
+### Build latest release from crates.io
+
+```sh
+cargo install --locked wild-linker
+```
+
+### Build from git head
+
+To build and install the latest, unreleased code:
+
+```sh
+cargo install --locked --bin wild --git https://github.com/wild-linker/wild.git wild-linker
+```
+
+### Nix
+
+To use a stable Wild from Nixpkgs:
+
+```nix
+let
+ wildStdenv = pkgs.useWildLinker pkgs.stdenv;
+in
+pkgs.callPackage ./package { stdenv = wildStdenv; }
+```
+
+to use the latest unstable git revision of wild, see [the nix documentation](./nix/nix.md).
+
+## Contributing
+
+For more information on contributing to Wild, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Chat server
+
+We have a Zulip server for Wild-related chat. You can join
+[here](https://wild.zulipchat.com/join/bbopdeg6howwjpaiyowngyde/).
+
+## Further reading
+
+Many of the posts on [David's blog](https://davidlattimore.github.io/) are about various aspects of
+the Wild linker.
+
+## Sponsorship
+
+If you'd like to [sponsor this work](https://github.com/sponsors/davidlattimore), that would be very
+much appreciated. The more sponsorship I get the longer I can continue to work on this project full
+time.
+
+Also, the Wild project is supported by the Rust Foundation's Rust Innovation Lab: https://rustfoundation.org/media/welcoming-wild-to-the-rust-innovation-lab/
+
+## Code of Conduct
+
+The Wild project adheres to the [Rust code of
+conduct](https://rust-lang.org/policies/code-of-conduct/). If you have any moderation concerns or
+queries, please email wild-mod@googlegroups.com.
+
+## License
+
+Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or [MIT license](LICENSE-MIT)
+at your option.
+
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in
+Wild by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any
+additional terms or conditions.
+
