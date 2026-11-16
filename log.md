@@ -13,3 +13,7 @@ Known breaches of the raw rule: the Skeptic overwrote two raw files on refetch, 
 ## [2026-11-16] ingest | Wiki pages written from the panel reports
 
 Created overview and five topic pages. Commercial build services, error messages, debugging and macro opacity are not yet covered.
+
+## [2026-11-16] query | Why are Rust compile times slow?
+
+Fetched eight explanatory sources into `raw/manual/` and filed the answer as `wiki/topics/why-rust-compiles-slowly.md`.
